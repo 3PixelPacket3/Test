@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function role() {
+      return isSignedIn()
+        ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role
+        : 'guest';
+    }
+    function isAdmin() { return role() in ['admin', 'superadmin']; }
+
+    match /public/{allPaths=**} {
+      allow read: if true;
+    }
+
+    match /admin/{folder}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && folder in ['products', 'loot', 'notes'];
+    }
+  }
+}
